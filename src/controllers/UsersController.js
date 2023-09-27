@@ -10,7 +10,7 @@ class UsersController {
         const checkUsersExists =  await database?.get("SELECT * FROM users WHERE email = (?)", [email])
 
         if(checkUsersExists) {
-            throw new AppError("User already exists")
+            throw new AppError("E-mail ja esta em uso!")
         }
 
         const hashedPassword = await hash(password, 8)
@@ -30,11 +30,11 @@ class UsersController {
     }
 
     async update(req, res) {
-        const { id } = req.params
         const { name, email, password, old_password } = req.body
+        const user_id = req.user.id
 
         const database = await sqliteConnection()
-        const user = await database?.get("SELECT * FROM users WHERE id = (?)", [id])
+        const user = await database?.get("SELECT * FROM users WHERE id = (?)", [user_id])
         const userWithUpdatedEmail = await database.get("SELECT * FROM users WHERE email = (?)", [email])
 
         if(!user) {
@@ -69,7 +69,7 @@ class UsersController {
             password = ?,
             updated_at = DATETIME('NOW')
             WHERE id = ?`,
-            [user.name, user.email, user.password, id]
+            [user.name, user.email, user.password, user_id]
         )
 
         return res.json()

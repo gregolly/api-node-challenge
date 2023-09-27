@@ -3,9 +3,11 @@ const knex = require("../database/knex")
 class MovieNotesController {
     async create(req, res) {
         const { title, description, rating, tags } = req.body
-        const { user_id } = req.params
+        const user_id = req.user.id
 
-        console.log(user_id)
+        if (rating < 0 || rating > 5) {
+            throw new AppError("A nota deve ser entre 0 e 5.");
+        }
 
         const [note_id] = await knex("movie_notes")
         .insert({
@@ -13,7 +15,7 @@ class MovieNotesController {
                 description, 
                 rating, 
                 user_id 
-            })
+        })
 
         const tagsInsert = tags.map(name => {
             return {
@@ -28,16 +30,16 @@ class MovieNotesController {
         return res.json()
     }
 
-    async get (req, res) {
-        const { id } = req.params
+    async show(request, response) {
+        const { id } = request.params;
 
-        const movieNote = await knex("movie_notes").where({ id }).first()
-        const tags = await knex("movie_tags").where({ note_id: id }).orderBy("name")
+        const note = await knex("movie_notes").where({ id }).first();
+        const tags = await knex("movie_tags").where({ note_id: id }).orderBy("name");
 
-        return res.json({
-            ...movieNote,
+        return response.json({
+            ...note,
             tags
-        })
+        });
     }
 
     async delete(req, res) {
@@ -49,11 +51,12 @@ class MovieNotesController {
     }
 
     async index(req, res) {
-        const { title, user_id, tags } = req.query
+        const { title, tags } = req.query
+        const user_id = req.user.id
 
         let movieNotes
 
-        if(tags && tags.length) {
+        if(tags) {
             const filterTags = tags.split(',').map(tags => tags.trim())
 
             movieNotes = await knex("movie_tags")
@@ -79,7 +82,7 @@ class MovieNotesController {
             const noteTags = userTags.filter(tag => tag.note_id === notes.id)
 
             return {
-                ...movieNotes,
+                ...notes,
                 tags: noteTags
             }
         })
